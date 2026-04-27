@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ibérica Seguridad – Presupuestos</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="4"  y="10" width="15" height="20" rx="1" stroke="white" stroke-width="2"/>
+              <rect x="21" y="10" width="15" height="20" rx="1" stroke="white" stroke-width="2"/>
+              <line x1="4"  y1="20" x2="19" y2="20" stroke="white" stroke-width="1.5"/>
+              <line x1="21" y1="20" x2="36" y2="20" stroke="white" stroke-width="1.5"/>
+              <line x1="11.5" y1="10" x2="11.5" y2="30" stroke="white" stroke-width="1.5"/>
+              <line x1="28.5" y1="10" x2="28.5" y2="30" stroke="white" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">IBÉRICA SEGURIDAD</span>
+            <span class="brand-sub">Carpintería de Aluminio · Sevilla</span>
+          </div>
+        </div>
+        <button class="btn-nueva" onclick="resetConversacion()" title="Empezar nueva consulta">
+          + Nueva consulta
+        </button>
+      </div>
+    </header>
+
+    <!-- CHAT -->
+    <main class="chat-wrap">
+      <div class="chat-messages" id="chatMessages">
+        <!-- Welcome message -->
+        <div class="msg msg-agent">
+          <div class="msg-avatar">IS</div>
+          <div class="msg-bubble">
+            Bienvenido a <strong>Ibérica Seguridad</strong>. Soy su agente de presupuestos para carpintería de aluminio.<br><br>
+            ¿En qué puedo ayudarle hoy? Puede preguntarme por ventanas, puertas, cerramientos, persianas, toldos o mamparas.
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER: PDF + input -->
+      <div class="chat-footer">
+
+        <!-- PDF banner (hidden until budget is ready) -->
+        <div class="pdf-banner" id="pdfBanner" hidden>
+          <span class="pdf-check">✓</span>
+          <span class="pdf-label">Presupuesto listo</span>
+          <button class="btn-pdf" onclick="descargarPDF()">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"/></svg>
+            Descargar PDF
+          </button>
+        </div>
+
+        <div class="input-row">
+          <textarea
+            id="userInput"
+            placeholder="Escriba su consulta…"
+            rows="1"
+            onkeydown="handleKey(event)"
+            oninput="autoExpand(this)"
+          ></textarea>
+          <button class="btn-send" id="btnSend" onclick="enviarMensaje()" aria-label="Enviar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+        <p class="hint">Enter para enviar &nbsp;·&nbsp; Shift+Enter para salto de línea</p>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
