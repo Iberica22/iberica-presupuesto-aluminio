@@ -1,7 +1,7 @@
 {
   "name": "iberica-seguridad-presupuestos",
   "version": "1.0.0",
-  "description": "Agente de presupuestos de carpintería de aluminio - Ibérica Seguridad",
+  "description": "Agente de presupuestos de seguridad para el hogar y el negocio - Ibérica Seguridad",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

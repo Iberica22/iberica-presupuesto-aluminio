@@ -13,10 +13,14 @@ tienda, lo genera y lo publica en VNNOX.
    | Categoría               | Rotación   |
    |-------------------------|------------|
    | Oferta / gancho semana  | 7 días     |
-   | Producto destacado      | 14 días    |
+   | Servicio destacado      | 14 días    |
    | Confianza / resultados  | 14 días    |
    | Marca                   | 30 días    |
    | CTA / QR                | 30 días    |
+
+   Servicios activos: cerrajería, alarmas y videovigilancia (CCTV), puertas acorazadas, domótica.
+   Automatismos (motorización) NO está activo, el prompt tiene instrucción explícita de no
+   mencionarlo.
 
    Editable en `categories.js`.
 

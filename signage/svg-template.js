@@ -1,14 +1,14 @@
 const { renderIcon } = require('./icons');
 
 const PALETTE = {
-  blue: '#1F4E79',
-  blueMid: '#2E75B6',
-  blueLight: '#D6E4F0',
-  bluePale: '#EBF3FB',
-  green: '#1A7340',
-  greenBg: '#E8F5EE',
+  green: '#1F892D',
+  greenMid: '#2FA23D',
+  greenLight: '#DCEFDD',
+  greenPale: '#EFF7F0',
+  gray: '#7A7879',
+  grayBg: '#EFEFEF',
   text: '#1A1A2E',
-  muted: '#6B7280',
+  muted: '#7A7879',
   white: '#FFFFFF',
 };
 
@@ -51,8 +51,8 @@ function textBlock({ x, y, lines, fontSize, lineHeight, fill, weight = 700 }) {
 }
 
 function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
-  const accent = PALETTE[slide.accent] || PALETTE.blue;
-  const accentBg = slide.accent === 'green' ? PALETTE.greenBg : PALETTE.bluePale;
+  const accent = PALETTE[slide.accent] || PALETTE.green;
+  const accentBg = slide.accent === 'gray' ? PALETTE.grayBg : PALETTE.greenPale;
 
   const headlineLines = wrapText(slide.headline, 18).slice(0, 2);
   const subLines = wrapText(slide.subheadline, 40).slice(0, 2);
@@ -77,11 +77,11 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
   <rect width="${width}" height="${height}" fill="url(#bg)"/>
 
   <!-- Cabecera de marca -->
-  <rect x="0" y="0" width="${width}" height="150" fill="${PALETTE.blue}"/>
+  <rect x="0" y="0" width="${width}" height="150" fill="${PALETTE.green}"/>
   <text x="70" y="70" font-family="'Segoe UI', Arial, sans-serif" font-size="46" font-weight="700"
     fill="${PALETTE.white}" letter-spacing="1">IBÉRICA SEGURIDAD</text>
   <text x="70" y="112" font-family="'Segoe UI', Arial, sans-serif" font-size="26"
-    fill="${PALETTE.blueLight}">Carpintería de Aluminio · Sevilla</text>
+    fill="${PALETTE.greenLight}">Asesores en Seguridad · Almería</text>
 
   ${
     slide.badge
@@ -119,11 +119,11 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
   ${
     showQr
       ? `<rect x="${width - 320}" y="${height - 320}" width="260" height="260" rx="16" fill="${PALETTE.white}"
-           stroke="${PALETTE.border || '#DDE3EC'}" stroke-width="2"/>
+           stroke="#DCE6DD" stroke-width="2"/>
          <image x="${width - 300}" y="${height - 300}" width="220" height="220" href="${qrDataUri}"/>
          <text x="${width - 190}" y="${height - 34}" text-anchor="middle"
            font-family="'Segoe UI', Arial, sans-serif" font-size="24" font-weight="600"
-           fill="${PALETTE.blue}">Presupuesto al instante</text>`
+           fill="${PALETTE.green}">Presupuesto al instante</text>`
       : ''
   }
 

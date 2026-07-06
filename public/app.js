@@ -123,8 +123,8 @@ async function resetConversacion() {
     <div class="msg msg-agent">
       <div class="msg-avatar">IS</div>
       <div class="msg-bubble">
-        Bienvenido a <strong>Ibérica Seguridad</strong>. Soy su agente de presupuestos para carpintería de aluminio.<br><br>
-        ¿En qué puedo ayudarle hoy? Puede preguntarme por ventanas, puertas, cerramientos, persianas, toldos o mamparas.
+        Bienvenido a <strong>Ibérica Seguridad</strong>. Soy su agente de presupuestos para seguridad del hogar y el negocio.<br><br>
+        ¿En qué puedo ayudarle hoy? Puede preguntarme por cerrajería, alarmas y videovigilancia, puertas acorazadas o domótica.
       </div>
     </div>`;
 

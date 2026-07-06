@@ -99,17 +99,17 @@ function buildPDF(data, stream) {
   const PW = doc.page.width;   // 595
   const ML = 50;               // margin left
   const CW = PW - 100;         // content width = 495
-  const BLUE = '#1F4E79';
-  const LBLUE = '#D6E4F0';
-  const GREY = '#6B7280';
+  const GREEN = '#1F892D';
+  const LGREEN = '#DCEFDD';
+  const GREY = '#7A7879';
   const DARK = '#2C2C2C';
 
   // ── Header band ──
-  doc.rect(0, 0, PW, 78).fill(BLUE);
+  doc.rect(0, 0, PW, 78).fill(GREEN);
   doc.fillColor('white').font('Helvetica-Bold').fontSize(22)
      .text('IBÉRICA SEGURIDAD', ML, 18, { width: CW, align: 'center' });
-  doc.fillColor(LBLUE).font('Helvetica').fontSize(11)
-     .text('Carpintería de Aluminio  ·  Sevilla', ML, 46, { width: CW, align: 'center' });
+  doc.fillColor(LGREEN).font('Helvetica').fontSize(11)
+     .text('Asesores en Seguridad  ·  Almería', ML, 46, { width: CW, align: 'center' });
 
   doc.y = 98;
 
@@ -117,17 +117,17 @@ function buildPDF(data, stream) {
   const ref   = 'IB-' + Date.now().toString().slice(-8);
   const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-  doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(17).text('PRESUPUESTO', { align: 'center' });
+  doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(17).text('PRESUPUESTO', { align: 'center' });
   doc.moveDown(0.4);
   doc.fillColor(GREY).font('Helvetica').fontSize(10)
      .text(`Referencia: ${ref}   ·   Fecha: ${fecha}`, { align: 'center' });
   doc.moveDown(1);
-  doc.moveTo(ML, doc.y).lineTo(PW - ML, doc.y).strokeColor(BLUE).lineWidth(1).stroke();
+  doc.moveTo(ML, doc.y).lineTo(PW - ML, doc.y).strokeColor(GREEN).lineWidth(1).stroke();
   doc.moveDown(0.8);
 
   // ── Client ──
   if (data.cliente) {
-    doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(12).text('CLIENTE');
+    doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(12).text('CLIENTE');
     doc.moveDown(0.4);
     doc.fillColor(DARK).font('Helvetica').fontSize(11)
        .text(`Nombre: ${data.cliente}`, ML + 8);
@@ -139,7 +139,7 @@ function buildPDF(data, stream) {
   }
 
   // ── Table ──
-  doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(12).text('PARTIDAS DEL PRESUPUESTO');
+  doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(12).text('PARTIDAS DEL PRESUPUESTO');
   doc.moveDown(0.6);
 
   // Column x-positions (absolute)
@@ -151,7 +151,7 @@ function buildPDF(data, stream) {
 
   // Header row
   let ry = doc.y;
-  doc.rect(c0, ry, CW, 22).fill(BLUE);
+  doc.rect(c0, ry, CW, 22).fill(GREEN);
   doc.fillColor('white').font('Helvetica-Bold').fontSize(9.5);
   doc.text('Descripción',         c0 +  5, ry + 6, { width: c1 - c0 - 10 });
   doc.text('Cant.',               c1,      ry + 6, { width: c2 - c1 - 5, align: 'center' });
@@ -200,7 +200,7 @@ function buildPDF(data, stream) {
   doc.text(ivaAmount.toFixed(2) + ' €', tx + 110, ry, { width: tw - 115, align: 'right' });
   ry += 24;
 
-  doc.rect(tx - 5, ry - 4, tw + 5, 26).fill(BLUE);
+  doc.rect(tx - 5, ry - 4, tw + 5, 26).fill(GREEN);
   doc.fillColor('white').font('Helvetica-Bold').fontSize(12.5);
   doc.text('TOTAL:', tx, ry + 3, { width: 110 });
   doc.text(total.toFixed(2) + ' €', tx + 110, ry + 3, { width: tw - 115, align: 'right' });
@@ -217,7 +217,7 @@ function buildPDF(data, stream) {
     ry += 8;
     doc.moveTo(ML, ry).lineTo(PW - ML, ry).strokeColor('#CCCCCC').lineWidth(0.5).stroke();
     ry += 10;
-    doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(11).text('NOTAS', ML, ry);
+    doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(11).text('NOTAS', ML, ry);
     ry += 16;
     doc.fillColor('#555555').font('Helvetica').fontSize(10)
        .text(data.notas, ML + 8, ry, { width: CW - 8 });
@@ -225,9 +225,9 @@ function buildPDF(data, stream) {
 
   // ── Footer band ──
   const footerY = doc.page.height - 50;
-  doc.rect(0, footerY, PW, 50).fill(BLUE);
-  doc.fillColor(LBLUE).font('Helvetica').fontSize(9)
-     .text('Ibérica Seguridad  ·  Carpintería de Aluminio  ·  Sevilla', ML, footerY + 17, {
+  doc.rect(0, footerY, PW, 50).fill(GREEN);
+  doc.fillColor(LGREEN).font('Helvetica').fontSize(9)
+     .text('Ibérica Seguridad  ·  Asesores en Seguridad  ·  Almería', ML, footerY + 17, {
        width: CW, align: 'center',
      });
 

@@ -1,21 +1,22 @@
 // Iconos mínimos dibujados a mano en SVG (sin depender de ninguna librería de iconos).
 // Cada uno se dibuja dentro de un viewBox 0 0 100 100, color controlado por el llamador.
 
-function sun(color) {
+function lock(color) {
   return `
-    <circle cx="50" cy="50" r="22" fill="${color}"/>
-    ${[0, 45, 90, 135, 180, 225, 270, 315]
-      .map((deg) => {
-        const rad = (deg * Math.PI) / 180;
-        const x1 = 50 + Math.cos(rad) * 32;
-        const y1 = 50 + Math.sin(rad) * 32;
-        const x2 = 50 + Math.cos(rad) * 46;
-        const y2 = 50 + Math.sin(rad) * 46;
-        return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(
-          1
-        )}" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`;
-      })
-      .join('')}
+    <rect x="26" y="46" width="48" height="42" rx="6" fill="none" stroke="${color}" stroke-width="8"/>
+    <path d="M34 46 V32 a16 16 0 0 1 32 0 V46" fill="none" stroke="${color}" stroke-width="8"/>
+    <circle cx="50" cy="65" r="6" fill="${color}"/>
+    <line x1="50" y1="71" x2="50" y2="80" stroke="${color}" stroke-width="7" stroke-linecap="round"/>
+  `;
+}
+
+function camera(color) {
+  return `
+    <rect x="10" y="34" width="58" height="34" rx="8" fill="none" stroke="${color}" stroke-width="8"/>
+    <circle cx="34" cy="51" r="12" fill="none" stroke="${color}" stroke-width="7"/>
+    <circle cx="34" cy="51" r="4" fill="${color}"/>
+    <rect x="60" y="42" width="14" height="18" rx="3" fill="${color}"/>
+    <line x1="20" y1="26" x2="20" y2="34" stroke="${color}" stroke-width="7" stroke-linecap="round"/>
   `;
 }
 
@@ -31,15 +32,6 @@ function percent(color) {
     <circle cx="28" cy="28" r="14" fill="none" stroke="${color}" stroke-width="8"/>
     <circle cx="72" cy="72" r="14" fill="none" stroke="${color}" stroke-width="8"/>
     <line x1="18" y1="82" x2="82" y2="18" stroke="${color}" stroke-width="8" stroke-linecap="round"/>
-  `;
-}
-
-function ruler(color) {
-  return `
-    <rect x="8" y="35" width="84" height="30" rx="4" fill="none" stroke="${color}" stroke-width="7"/>
-    ${[20, 32, 44, 56, 68, 80]
-      .map((x) => `<line x1="${x}" y1="35" x2="${x}" y2="${x % 24 === 20 ? 52 : 46}" stroke="${color}" stroke-width="5"/>`)
-      .join('')}
   `;
 }
 
@@ -64,7 +56,7 @@ function home(color) {
     <rect x="44" y="66" width="14" height="26" fill="${color}"/>`;
 }
 
-const ICONS = { sun, shield, percent, ruler, phone, star, home };
+const ICONS = { lock, shield, percent, camera, phone, star, home };
 
 function renderIcon(name, color) {
   const fn = ICONS[name] || star;

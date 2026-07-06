@@ -4,21 +4,29 @@ const CATEGORIES = require('./categories');
 const state = require('./state');
 
 const BRAND_BRIEF = `
-Empresa: Ibérica Seguridad — carpintería de aluminio en Sevilla y provincia.
-Productos: ventanas correderas y practicables (series EVO y RPT de alta eficiencia), puertas,
-cerramientos de terraza, persianas, toldos, mamparas de baño.
-Público: particulares que reforman o construyen vivienda en Sevilla, sensibles al precio, al
-aislamiento térmico/acústico y a la fiabilidad del instalador.
-Tono de marca: profesional, cercano, sin tecnicismos, sin acentos ni jerga rebuscada.
+Empresa: Ibérica Seguridad — Asesores en Seguridad, Almería capital y provincia.
+Servicios activos: cerrajería (incl. urgencias), alarmas y videovigilancia (CCTV), puertas
+acorazadas/de seguridad, domótica y control desde el móvil. NO ofrecer "automatismos" (motorización
+de puertas/persianas): no es un servicio activo actualmente, no lo menciones nunca como oferta.
+Diferenciación: fabricantes, instaladores y asesores propios, sin depender de terceros — "todo en
+uno, contigo en todo".
+Misión de marca: "Seguridad que se siente cerca". Visión: "Liderar sin perder el alma".
+Valores: compromiso que se nota (cumplen lo que prometen), cercanía real (trato humano, no frío ni
+genérico), soluciones que piensan en ti (no venden más, venden mejor).
+Personalidad: resolutivos por naturaleza, claros como el agua (comunicación directa y honesta, sin
+tecnicismos ni letra pequeña), innovación con propósito (tecnología que suma, no que estorba).
+Público: personas prácticas y ocupadas que valoran la confianza y la rapidez, quieren soluciones
+completas sin depender de varios proveedores, y que alguien responda si algo falla.
 Canal: pantalla LED de escaparate, se ve desde la calle o dentro de la tienda a varios metros.
 `.trim();
 
-const ICONS = ['sun', 'shield', 'percent', 'ruler', 'phone', 'star', 'home'];
-const ACCENTS = ['blue', 'green'];
+const ICONS = ['lock', 'shield', 'percent', 'camera', 'phone', 'star', 'home'];
+const ACCENTS = ['green', 'gray'];
 
 const SYSTEM_PROMPT = `
-Eres el estratega de marketing y comunicación de una carpintería de aluminio. Escribes textos
-cortísimos para una pantalla LED de escaparate que la gente ve al pasar (2-4 segundos de atención).
+Eres el estratega de marketing y comunicación de una empresa de seguridad para el hogar y el
+negocio. Escribes textos cortísimos para una pantalla LED de escaparate que la gente ve al pasar
+(2-4 segundos de atención).
 
 Reglas de redacción:
 - headline: máximo 6 palabras, en español, con gancho real (no genérico ni vacío).
