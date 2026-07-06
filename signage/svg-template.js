@@ -20,8 +20,10 @@ function escapeXml(str) {
     .replace(/"/g, '&quot;');
 }
 
-// Divide un texto en líneas de como mucho `maxChars` caracteres, sin cortar palabras.
-function wrapText(text, maxChars) {
+// Divide un texto en líneas que quepan en `maxWidth` a un tamaño de fuente dado
+// (estimación de ancho de carácter para fuentes sans-serif en negrita), sin cortar palabras.
+function wrapText(text, maxWidth, fontSize, charWidthFactor = 0.56) {
+  const maxChars = Math.max(4, Math.floor(maxWidth / (fontSize * charWidthFactor)));
   const words = String(text || '').split(/\s+/).filter(Boolean);
   const lines = [];
   let current = '';
@@ -50,20 +52,52 @@ function textBlock({ x, y, lines, fontSize, lineHeight, fill, weight = 700 }) {
   </text>`;
 }
 
+// Todas las medidas se calculan como proporción de width/height para que el mismo slide
+// funcione tanto en una pantalla 1920x1080 como en una de 432x216 (resolución real de las
+// pantallas LED de la tienda, muy distinta a la que se asumió al principio).
 function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
   const accent = PALETTE[slide.accent] || PALETTE.green;
   const accentBg = slide.accent === 'gray' ? PALETTE.grayBg : PALETTE.greenPale;
 
-  const headlineLines = wrapText(slide.headline, 18).slice(0, 2);
-  const subLines = wrapText(slide.subheadline, 40).slice(0, 2);
-
-  const headlineFontSize = 108;
-  const headlineLineHeight = 118;
-  const headlineStartY = 460;
-
-  const subStartY = headlineStartY + headlineLines.length * headlineLineHeight + 70;
-
+  const pad = Math.round(width * 0.035);
   const showQr = Boolean(qrDataUri && siteUrl);
+
+  // ── Cabecera ──
+  const headerHeight = Math.round(height * 0.24);
+  const headerTitleSize = Math.max(9, Math.round(height * 0.1));
+  const headerSubSize = Math.max(7, Math.round(height * 0.058));
+
+  // ── Icono (arriba a la derecha, debajo/junto a la cabecera) ──
+  const iconSize = Math.round(height * 0.32);
+  const iconX = width - pad - iconSize;
+  const iconY = headerHeight + Math.round(height * 0.05);
+
+  // ── Badge (etiqueta pequeña) ──
+  const badgeH = Math.round(height * 0.13);
+  const badgeFontSize = Math.max(7, Math.round(height * 0.06));
+  const badgeY = headerHeight + Math.round(height * 0.06);
+  const badgeWidth = slide.badge ? Math.max(Math.round(width * 0.16), slide.badge.length * badgeFontSize * 0.65 + badgeH) : 0;
+
+  // ── Zona de texto (deja hueco a la derecha para el QR en la franja inferior) ──
+  const qrSize = Math.round(Math.min(width, height) * 0.52);
+  const textAreaWidth = showQr ? width - pad * 2 - qrSize - pad : width - pad * 2;
+
+  const headlineFontSize = Math.max(11, Math.round(height * 0.145));
+  const headlineLineHeight = Math.round(headlineFontSize * 1.08);
+  const headlineLines = wrapText(slide.headline, textAreaWidth, headlineFontSize).slice(0, 2);
+  const headlineStartY = badgeY + badgeH + Math.round(height * 0.14);
+
+  const subFontSize = Math.max(8, Math.round(height * 0.068));
+  const subLineHeight = Math.round(subFontSize * 1.3);
+  const subStartY = headlineStartY + headlineLines.length * headlineLineHeight + Math.round(height * 0.09);
+
+  const bottomBarHeight = Math.max(2, Math.round(height * 0.012));
+
+  // En pantallas muy bajas (poca altura), un titular de 2 líneas puede dejar apenas sitio
+  // para el subtítulo. Recorta a las líneas que realmente quepan antes del borde inferior.
+  const availableForSub = height - bottomBarHeight - pad - subStartY;
+  const maxSubLines = Math.max(1, Math.min(2, Math.floor(availableForSub / subLineHeight) + 1));
+  const subLines = wrapText(slide.subheadline, textAreaWidth, subFontSize, 0.52).slice(0, maxSubLines);
 
   return `
 <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
@@ -77,28 +111,32 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
   <rect width="${width}" height="${height}" fill="url(#bg)"/>
 
   <!-- Cabecera de marca -->
-  <rect x="0" y="0" width="${width}" height="150" fill="${PALETTE.green}"/>
-  <text x="70" y="70" font-family="'Segoe UI', Arial, sans-serif" font-size="46" font-weight="700"
-    fill="${PALETTE.white}" letter-spacing="1">IBÉRICA SEGURIDAD</text>
-  <text x="70" y="112" font-family="'Segoe UI', Arial, sans-serif" font-size="26"
-    fill="${PALETTE.greenLight}">Asesores en Seguridad · Almería</text>
+  <rect x="0" y="0" width="${width}" height="${headerHeight}" fill="${PALETTE.green}"/>
+  <text x="${pad}" y="${Math.round(headerHeight * 0.48)}" font-family="'Segoe UI', Arial, sans-serif"
+    font-size="${headerTitleSize}" font-weight="700" fill="${PALETTE.white}" letter-spacing="0.5">IBÉRICA SEGURIDAD</text>
+  <text x="${pad}" y="${Math.round(headerHeight * 0.82)}" font-family="'Segoe UI', Arial, sans-serif"
+    font-size="${headerSubSize}" fill="${PALETTE.greenLight}">Asesores en Seguridad · Almería</text>
 
   ${
     slide.badge
-      ? `<rect x="70" y="220" width="${Math.max(220, slide.badge.length * 26 + 80)}" height="66" rx="33" fill="${accent}"/>
-         <text x="${70 + Math.max(220, slide.badge.length * 26 + 80) / 2}" y="262" text-anchor="middle"
-           font-family="'Segoe UI', Arial, sans-serif" font-size="30" font-weight="700"
+      ? `<rect x="${pad}" y="${badgeY}" width="${badgeWidth}" height="${badgeH}" rx="${badgeH / 2}" fill="${accent}"/>
+         <text x="${pad + badgeWidth / 2}" y="${badgeY + badgeH * 0.66}" text-anchor="middle"
+           font-family="'Segoe UI', Arial, sans-serif" font-size="${badgeFontSize}" font-weight="700"
            fill="${PALETTE.white}">${escapeXml(slide.badge.toUpperCase())}</text>`
       : ''
   }
 
-  <!-- Icono -->
-  <g transform="translate(1560, 130) scale(2.4)">
-    ${renderIcon(slide.icon, accent)}
-  </g>
+  ${
+    showQr
+      ? ''
+      : `<!-- Icono (se omite cuando hay QR: en 432x216 no caben los dos sin solaparse) -->
+         <g transform="translate(${iconX}, ${iconY}) scale(${(iconSize / 100).toFixed(3)})">
+           ${renderIcon(slide.icon, accent)}
+         </g>`
+  }
 
   ${textBlock({
-    x: 70,
+    x: pad,
     y: headlineStartY,
     lines: headlineLines,
     fontSize: headlineFontSize,
@@ -107,28 +145,26 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
   })}
 
   ${textBlock({
-    x: 70,
+    x: pad,
     y: subStartY,
     lines: subLines,
-    fontSize: 44,
-    lineHeight: 56,
+    fontSize: subFontSize,
+    lineHeight: subLineHeight,
     fill: PALETTE.muted,
     weight: 400,
   })}
 
   ${
     showQr
-      ? `<rect x="${width - 320}" y="${height - 320}" width="260" height="260" rx="16" fill="${PALETTE.white}"
-           stroke="#DCE6DD" stroke-width="2"/>
-         <image x="${width - 300}" y="${height - 300}" width="220" height="220" href="${qrDataUri}"/>
-         <text x="${width - 190}" y="${height - 34}" text-anchor="middle"
-           font-family="'Segoe UI', Arial, sans-serif" font-size="24" font-weight="600"
-           fill="${PALETTE.green}">Presupuesto al instante</text>`
+      ? `<rect x="${width - pad - qrSize}" y="${height - pad - qrSize}" width="${qrSize}" height="${qrSize}" rx="${Math.round(qrSize * 0.06)}" fill="${PALETTE.white}"
+           stroke="#DCE6DD" stroke-width="1"/>
+         <image x="${width - pad - qrSize + Math.round(qrSize * 0.08)}" y="${height - pad - qrSize + Math.round(qrSize * 0.08)}"
+           width="${Math.round(qrSize * 0.84)}" height="${Math.round(qrSize * 0.84)}" href="${qrDataUri}"/>`
       : ''
   }
 
   <!-- Franja inferior -->
-  <rect x="0" y="${height - 14}" width="${width}" height="14" fill="${accent}"/>
+  <rect x="0" y="${height - bottomBarHeight}" width="${width}" height="${bottomBarHeight}" fill="${accent}"/>
 </svg>`.trim();
 }
 

@@ -12,9 +12,11 @@ function envTrimmed(name, fallback = '') {
 }
 
 module.exports = {
+  // 432x216 = resolución real de la pantalla LED de la tienda (confirmada vía VNNOX
+  // GET /v2/player/list), no 1920x1080 como se asumió antes de tener el dato real.
   screen: {
-    width: envInt('SIGNAGE_SCREEN_WIDTH', 1920),
-    height: envInt('SIGNAGE_SCREEN_HEIGHT', 1080),
+    width: envInt('SIGNAGE_SCREEN_WIDTH', 432),
+    height: envInt('SIGNAGE_SCREEN_HEIGHT', 216),
   },
 
   openaiModel: process.env.SIGNAGE_OPENAI_MODEL || 'gpt-4o-mini',
