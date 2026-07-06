@@ -3,3 +3,8 @@ node_modules/
 .env.local
 *.log
 npm-debug.log*
+
+# Señalización LED: artefactos generados en cada ejecución
+signage/output/*.png
+signage/logs/*.json
+signage/state.json

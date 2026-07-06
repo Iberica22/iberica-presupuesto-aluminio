@@ -11,6 +11,9 @@ const PORT = process.env.PORT || 3000;
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+const signageConfig = require('./signage/config');
+const { runWeeklySignage } = require('./signage/run');
+
 const systemPrompt = fs.readFileSync(
   path.join(__dirname, 'prompts', 'system.txt'),
   'utf-8'
@@ -231,7 +234,25 @@ function buildPDF(data, stream) {
   doc.end();
 }
 
+// ── Señalización LED (pantallas del escaparate) ────────────────────────────────
+// Ejecuta bajo demanda el pipeline semanal de contenido para las pantallas LED.
+// Protegido con SIGNAGE_ADMIN_TOKEN para poder probarlo/forzarlo sin esperar al cron.
+app.post('/api/signage/run-now', async (req, res) => {
+  if (!signageConfig.adminToken || req.get('x-admin-token') !== signageConfig.adminToken) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+  try {
+    const publish = req.query.publish !== 'false';
+    const summary = await runWeeklySignage({ publish });
+    res.json(summary);
+  } catch (err) {
+    console.error('Error ejecutando señalización LED:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✓ Ibérica Seguridad  →  http://localhost:${PORT}`);
+  require('./signage/scheduler').start();
 });
