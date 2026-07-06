@@ -6,6 +6,11 @@ function envInt(name, fallback) {
   return Number.isFinite(v) ? v : fallback;
 }
 
+// Quita espacios/saltos de línea accidentales al copiar/pegar claves (típico en Windows).
+function envTrimmed(name, fallback = '') {
+  return (process.env[name] || fallback).trim();
+}
+
 module.exports = {
   screen: {
     width: envInt('SIGNAGE_SCREEN_WIDTH', 1920),
@@ -21,9 +26,9 @@ module.exports = {
 
   vnnox: {
     // Host regional del API Gateway. El panel del cliente es eu.vnnox.com → región EU.
-    apiHost: process.env.VNNOX_API_HOST || 'https://open-eu.vnnox.com',
-    appKey: process.env.VNNOX_APP_KEY || '',
-    appSecret: process.env.VNNOX_APP_SECRET || '',
+    apiHost: envTrimmed('VNNOX_API_HOST', 'https://open-eu.vnnox.com'),
+    appKey: envTrimmed('VNNOX_APP_KEY'),
+    appSecret: envTrimmed('VNNOX_APP_SECRET'),
     terminalIds: (process.env.VNNOX_TERMINAL_IDS || '')
       .split(',')
       .map((s) => s.trim())
@@ -40,5 +45,5 @@ module.exports = {
     },
   },
 
-  adminToken: process.env.SIGNAGE_ADMIN_TOKEN || '',
+  adminToken: envTrimmed('SIGNAGE_ADMIN_TOKEN'),
 };
