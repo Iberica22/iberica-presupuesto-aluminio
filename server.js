@@ -13,6 +13,7 @@ const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const signageConfig = require('./signage/config');
 const { runWeeklySignage } = require('./signage/run');
+const { VnnoxClient } = require('./signage/vnnox-client');
 
 const systemPrompt = fs.readFileSync(
   path.join(__dirname, 'prompts', 'system.txt'),
@@ -235,6 +236,21 @@ function buildPDF(data, stream) {
 }
 
 // ── Señalización LED (pantallas del escaparate) ────────────────────────────────
+// Lista los reproductores/pantallas dados de alta en VNNOX (para obtener sus IDs reales
+// y rellenar VNNOX_TERMINAL_IDS). Protegido con SIGNAGE_ADMIN_TOKEN.
+app.get('/api/signage/players', async (req, res) => {
+  if (!signageConfig.adminToken || req.get('x-admin-token') !== signageConfig.adminToken) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+  try {
+    const players = await new VnnoxClient().listPlayers();
+    res.json(players);
+  } catch (err) {
+    console.error('Error listando pantallas VNNOX:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Ejecuta bajo demanda el pipeline semanal de contenido para las pantallas LED.
 // Protegido con SIGNAGE_ADMIN_TOKEN para poder probarlo/forzarlo sin esperar al cron.
 app.post('/api/signage/run-now', async (req, res) => {
