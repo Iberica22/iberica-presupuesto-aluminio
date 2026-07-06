@@ -1,5 +1,9 @@
 const { renderIcon } = require('./icons');
 
+// Fuentes instaladas explícitamente en el contenedor (ver nixpacks.toml). 'Segoe UI'/Arial
+// no existen en Linux; sin una fuente real instalada, el texto sale en blanco o como "tofu".
+const FONT_FAMILY = "'DejaVu Sans', 'Liberation Sans', sans-serif";
+
 const PALETTE = {
   green: '#1F892D',
   greenMid: '#2FA23D',
@@ -41,7 +45,7 @@ function wrapText(text, maxWidth, fontSize, charWidthFactor = 0.56) {
 }
 
 function textBlock({ x, y, lines, fontSize, lineHeight, fill, weight = 700 }) {
-  return `<text x="${x}" y="${y}" font-family="'Segoe UI', Arial, sans-serif" font-size="${fontSize}"
+  return `<text x="${x}" y="${y}" font-family="${FONT_FAMILY}" font-size="${fontSize}"
     font-weight="${weight}" fill="${fill}">
     ${lines
       .map(
@@ -112,16 +116,16 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
 
   <!-- Cabecera de marca -->
   <rect x="0" y="0" width="${width}" height="${headerHeight}" fill="${PALETTE.green}"/>
-  <text x="${pad}" y="${Math.round(headerHeight * 0.48)}" font-family="'Segoe UI', Arial, sans-serif"
+  <text x="${pad}" y="${Math.round(headerHeight * 0.48)}" font-family="${FONT_FAMILY}"
     font-size="${headerTitleSize}" font-weight="700" fill="${PALETTE.white}" letter-spacing="0.5">IBÉRICA SEGURIDAD</text>
-  <text x="${pad}" y="${Math.round(headerHeight * 0.82)}" font-family="'Segoe UI', Arial, sans-serif"
+  <text x="${pad}" y="${Math.round(headerHeight * 0.82)}" font-family="${FONT_FAMILY}"
     font-size="${headerSubSize}" fill="${PALETTE.greenLight}">Asesores en Seguridad · Almería</text>
 
   ${
     slide.badge
       ? `<rect x="${pad}" y="${badgeY}" width="${badgeWidth}" height="${badgeH}" rx="${badgeH / 2}" fill="${accent}"/>
          <text x="${pad + badgeWidth / 2}" y="${badgeY + badgeH * 0.66}" text-anchor="middle"
-           font-family="'Segoe UI', Arial, sans-serif" font-size="${badgeFontSize}" font-weight="700"
+           font-family="${FONT_FAMILY}" font-size="${badgeFontSize}" font-weight="700"
            fill="${PALETTE.white}">${escapeXml(slide.badge.toUpperCase())}</text>`
       : ''
   }

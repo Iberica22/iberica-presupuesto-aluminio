@@ -1,0 +1,5 @@
+# Fuentes de sistema necesarias para que `sharp` (vía librsvg) pueda renderizar texto
+# al convertir los slides SVG de señalización LED a PNG. Sin esto, Railway despliega un
+# contenedor sin ninguna fuente instalada y el texto sale en blanco o como "tofu" (□□□).
+[phases.setup]
+aptPkgs = ["fontconfig", "fonts-dejavu-core", "fonts-liberation"]
