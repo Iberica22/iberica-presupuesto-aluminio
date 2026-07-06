@@ -22,6 +22,9 @@ const systemPrompt = fs.readFileSync(
 
 app.use(express.json());
 app.use(express.static('public'));
+// Previsualización de los slides generados para las pantallas LED (imágenes, no datos
+// sensibles). Ej: https://tu-app/signage-preview/oferta.png
+app.use('/signage-preview', express.static(path.join(__dirname, 'signage', 'output')));
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'iberica-secret',
