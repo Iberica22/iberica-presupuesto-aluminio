@@ -57,7 +57,9 @@ async function runWeeklySignage({ publish = true } = {}) {
     slides: plan.map((s) => ({
       key: s.key,
       label: s.label,
-      refreshedNow: s.refreshedNow,
+      badge: s.badge,
+      poolIndex: s.poolIndex,
+      poolSize: s.poolSize,
       headline: s.headline,
     })),
     publish: publishResult,

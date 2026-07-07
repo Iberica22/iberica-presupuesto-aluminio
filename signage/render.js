@@ -22,18 +22,26 @@ function findPhotoDataUri(key) {
   return null;
 }
 
+// wa.me/<número>?text=<mensaje> abre WhatsApp directamente con el bot, con un mensaje ya
+// escrito — más rápido para quien pasa por la calle que cargar una web.
+function buildWhatsappUrl() {
+  const { whatsappNumber, whatsappMessage } = config.contact;
+  if (!whatsappNumber) return '';
+  return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+}
+
 async function renderSlide(slide) {
-  const qrDataUri = config.siteUrl
-    ? await QRCode.toDataURL(config.siteUrl, { margin: 1, width: 220 })
-    : null;
+  const whatsappUrl = buildWhatsappUrl();
+  const qrDataUri = whatsappUrl ? await QRCode.toDataURL(whatsappUrl, { margin: 1, width: 220 }) : null;
   const photoDataUri = findPhotoDataUri(slide.key);
 
   const svg = buildSlideSvg(slide, {
     width: config.screen.width,
     height: config.screen.height,
     qrDataUri,
-    siteUrl: config.siteUrl,
+    siteUrl: whatsappUrl,
     photoDataUri,
+    phone: config.contact.phone,
   });
 
   const filePath = path.join(OUTPUT_DIR, `${slide.key}.png`);

@@ -24,10 +24,14 @@ function escapeXml(str) {
     .replace(/"/g, '&quot;');
 }
 
-// Divide un texto en líneas que quepan en `maxWidth` a un tamaño de fuente dado
-// (estimación de ancho de carácter para fuentes sans-serif en negrita), sin cortar palabras.
-function wrapText(text, maxWidth, fontSize, charWidthFactor = 0.56) {
-  const maxChars = Math.max(4, Math.floor(maxWidth / (fontSize * charWidthFactor)));
+// Divide un texto en líneas que quepan en `maxWidth` a un tamaño de fuente dado.
+// El factor de ancho de carácter es deliberadamente conservador (sobreestima el ancho real
+// de DejaVu Sans/Liberation Sans en negrita): es preferible envolver una línea de más a que
+// una letra de más se salga del lienzo o quede tapada por el QR — no hay forma barata de
+// medir el ancho real del glifo sin renderizar, así que se prioriza el margen de seguridad.
+function wrapText(text, maxWidth, fontSize, charWidthFactor = 0.64) {
+  const safeWidth = maxWidth - fontSize * 0.3;
+  const maxChars = Math.max(4, Math.floor(safeWidth / (fontSize * charWidthFactor)));
   const words = String(text || '').split(/\s+/).filter(Boolean);
   const lines = [];
   let current = '';
@@ -67,7 +71,7 @@ function textBlock({ x, y, lines, fontSize, lineHeight, fill, weight = 700, outl
 // Todas las medidas se calculan como proporción de width/height para que el mismo slide
 // funcione tanto en una pantalla 1920x1080 como en una de 432x216 (resolución real de las
 // pantallas LED de la tienda, muy distinta a la que se asumió al principio).
-function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl, photoDataUri }) {
+function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl, photoDataUri, phone }) {
   const accent = PALETTE[slide.accent] || PALETTE.green;
   const accentBg = slide.accent === 'gray' ? PALETTE.grayBg : PALETTE.greenPale;
   const hasPhoto = Boolean(photoDataUri);
@@ -88,16 +92,20 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl, photoDataUri 
   const headerTitleSize = Math.max(9, Math.round(height * 0.1));
   const headerSubSize = Math.max(7, Math.round(height * 0.058));
 
-  // ── Icono (arriba a la derecha, debajo/junto a la cabecera) ──
-  const iconSize = Math.round(height * 0.32);
-  const iconX = width - pad - iconSize;
-  const iconY = headerHeight + Math.round(height * 0.05);
-
-  // ── Badge (etiqueta pequeña) ──
-  const badgeH = Math.round(height * 0.13);
+  // ── Badge (etiqueta pequeña) con el icono del servicio integrado ──
+  // El icono nunca se dibuja suelto: en una pantalla de 432x216 no cabe a la vez que el QR
+  // (que ahora está presente casi siempre), así que vive dentro del badge. Esto además
+  // refuerza "mismo icono = mismo servicio, siempre" en el mismo sitio en todas las tarjetas.
+  const badgeH = Math.round(height * 0.15);
   const badgeFontSize = Math.max(7, Math.round(height * 0.06));
   const badgeY = headerHeight + Math.round(height * 0.06);
-  const badgeWidth = slide.badge ? Math.max(Math.round(width * 0.16), slide.badge.length * badgeFontSize * 0.65 + badgeH) : 0;
+  const badgeIconSize = badgeH * 0.66;
+  const badgeIconPad = badgeH * 0.17;
+  const badgeTextX = pad + badgeIconPad * 2 + badgeIconSize;
+  const badgeText = (slide.badge || '').toUpperCase();
+  const badgeWidth = slide.badge
+    ? badgeTextX - pad + badgeText.length * badgeFontSize * 0.68 + badgeIconPad * 1.5
+    : badgeIconPad * 2 + badgeIconSize;
 
   // ── Zona de texto (deja hueco a la derecha para el QR en la franja inferior) ──
   const qrSize = Math.round(Math.min(width, height) * 0.52);
@@ -118,7 +126,7 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl, photoDataUri 
   // para el subtítulo. Recorta a las líneas que realmente quepan antes del borde inferior.
   const availableForSub = height - bottomBarHeight - pad - subStartY;
   const maxSubLines = Math.max(1, Math.min(2, Math.floor(availableForSub / subLineHeight) + 1));
-  const subLines = wrapText(slide.subheadline, textAreaWidth, subFontSize, 0.52).slice(0, maxSubLines);
+  const subLines = wrapText(slide.subheadline, textAreaWidth, subFontSize, 0.6).slice(0, maxSubLines);
 
   // Banda-rótulo: ancho completo (de borde a borde), para no depender de acertar el
   // tamaño exacto del texto ni de dónde la foto tenga su zona "tranquila".
@@ -151,26 +159,29 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl, photoDataUri 
     font-size="${headerTitleSize}" font-weight="700" fill="${PALETTE.white}" letter-spacing="0.5">IBÉRICA SEGURIDAD</text>
   <text x="${pad}" y="${Math.round(headerHeight * 0.82)}" font-family="${FONT_FAMILY}"
     font-size="${headerSubSize}" fill="${PALETTE.greenLight}">Asesores en Seguridad · Almería</text>
-
   ${
-    slide.badge
-      ? `<rect x="${pad}" y="${badgeY}" width="${badgeWidth}" height="${badgeH}" rx="${badgeH / 2}" fill="${accent}"/>
-         <text x="${pad + badgeWidth / 2}" y="${badgeY + badgeH * 0.66}" text-anchor="middle"
-           font-family="${FONT_FAMILY}" font-size="${badgeFontSize}" font-weight="700"
-           fill="${PALETTE.white}">${escapeXml(slide.badge.toUpperCase())}</text>`
+    phone
+      ? `<text x="${width - pad}" y="${Math.round(headerHeight * 0.6)}" text-anchor="end"
+           font-family="${FONT_FAMILY}" font-size="${headerSubSize}" font-weight="700"
+           fill="${PALETTE.white}">☎ ${escapeXml(phone)}</text>`
       : ''
   }
 
+  <!-- Badge con icono del servicio integrado (fijo por servicio, nunca lo elige la IA). -->
+  <rect x="${pad}" y="${badgeY}" width="${badgeWidth}" height="${badgeH}" rx="${badgeH / 2}" fill="${accent}"/>
+  <circle cx="${pad + badgeIconPad + badgeIconSize / 2}" cy="${badgeY + badgeH / 2}" r="${badgeIconSize / 2}"
+    fill="${PALETTE.white}" fill-opacity="0.22"/>
+  <g transform="translate(${pad + badgeIconPad * 0.5}, ${badgeY + badgeH / 2 - badgeIconSize / 2}) scale(${(
+    badgeIconSize / 100
+  ).toFixed(3)})">
+    ${renderIcon(slide.icon, PALETTE.white)}
+  </g>
   ${
-    showQr
-      ? ''
-      : `<!-- Icono (se omite cuando hay QR: en 432x216 no caben los dos sin solaparse). -->
-         <!-- Chip sólido/casi opaco detrás: igual que el badge, inmune a la foto de fondo. -->
-         <circle cx="${iconX + iconSize / 2}" cy="${iconY + iconSize / 2}" r="${iconSize * 0.62}"
-           fill="${hasPhoto ? '#0A2A14' : PALETTE.white}" fill-opacity="${hasPhoto ? 0.78 : 1}"/>
-         <g transform="translate(${iconX}, ${iconY}) scale(${(iconSize / 100).toFixed(3)})">
-           ${renderIcon(slide.icon, accent)}
-         </g>`
+    slide.badge
+      ? `<text x="${badgeTextX}" y="${badgeY + badgeH * 0.66}"
+           font-family="${FONT_FAMILY}" font-size="${badgeFontSize}" font-weight="700"
+           fill="${PALETTE.white}">${escapeXml(badgeText)}</text>`
+      : ''
   }
 
   ${

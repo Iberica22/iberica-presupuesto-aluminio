@@ -1,6 +1,6 @@
 const OpenAI = require('openai');
 const config = require('./config');
-const CATEGORIES = require('./categories');
+const { CATEGORIES, SERVICES } = require('./categories');
 const state = require('./state');
 
 const BRAND_BRIEF = `
@@ -17,53 +17,31 @@ Personalidad: resolutivos por naturaleza, claros como el agua (comunicación dir
 tecnicismos ni letra pequeña), innovación con propósito (tecnología que suma, no que estorba).
 Público: personas prácticas y ocupadas que valoran la confianza y la rapidez, quieren soluciones
 completas sin depender de varios proveedores, y que alguien responda si algo falla.
-Canal: pantalla LED de escaparate, se ve desde la calle o dentro de la tienda a varios metros.
+Canal: pantalla LED de escaparate, se ve desde la calle o dentro de la tienda a varios metros,
+sobre todo por gente pasando 2-4 segundos SIN necesidad activa en ese momento — el objetivo
+principal es quedarse en la memoria (recuerdo de marca), no arrancar una conversión inmediata.
 `.trim();
-
-const ICONS = ['lock', 'shield', 'percent', 'camera', 'phone', 'star', 'home'];
-const ACCENTS = ['green', 'gray'];
 
 const SYSTEM_PROMPT = `
 Eres el estratega de marketing y comunicación de una empresa de seguridad para el hogar y el
 negocio. Escribes textos cortísimos para una pantalla LED de escaparate que la gente ve al pasar
-(2-4 segundos de atención).
+(2-4 segundos de atención), pensados para RECORDARSE con el tiempo, no para vender en el momento.
 
 Reglas de redacción:
 - headline: máximo 6 palabras, en español, con gancho real (no genérico ni vacío).
 - subheadline: máximo 10 palabras, complementa al headline, nunca lo repite.
-- badge: máximo 3 palabras, opcional, para una etiqueta pequeña (puede ir vacío "").
-- icon: elige exactamente uno de esta lista: ${ICONS.join(', ')}.
-- accent: elige exactamente uno de esta lista: ${ACCENTS.join(', ')}.
-- Ten en cuenta la fecha/estación del año para que el mensaje sea oportuno (calor en verano,
-  aislamiento en invierno, etc.) cuando la categoría lo permita.
-- No inventes cifras de descuento, testimonios de clientes reales ni certificaciones que no
-  se hayan dado como contexto.
+- No inventes cifras de descuento, testimonios de clientes reales ni certificaciones que no se
+  hayan dado como contexto.
+- No menciones nunca "automatismos": no es un servicio activo.
+- Si se te da una fórmula/patrón verbal fijo para la categoría, síguelo en TODAS las variantes que
+  generes — el patrón repetido es lo que se reconoce, no el contenido concreto.
 
 Responde SOLO con un JSON con esta forma exacta:
-{"slides": [{"key": "...", "headline": "...", "subheadline": "...", "badge": "...", "icon": "...", "accent": "..."}]}
+{"items": [{"headline": "...", "subheadline": "..."}, ...]}
 `.trim();
 
-async function generateCopy(categoriesToRefresh) {
+async function callOpenAI(userPrompt) {
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-  const today = new Date().toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
-
-  const userPrompt = `
-Contexto de marca:
-${BRAND_BRIEF}
-
-Fecha de hoy: ${today}
-
-Genera copy nuevo para estas categorías (una entrada por cada "key"):
-${categoriesToRefresh
-  .map((c) => `- key: "${c.key}" (${c.label}). Enfoque: ${c.brief}`)
-  .join('\n')}
-`.trim();
-
   const response = await client.chat.completions.create({
     model: config.openaiModel,
     response_format: { type: 'json_object' },
@@ -72,45 +50,103 @@ ${categoriesToRefresh
       { role: 'user', content: userPrompt },
     ],
   });
-
   const parsed = JSON.parse(response.choices[0].message.content);
-  if (!Array.isArray(parsed.slides)) throw new Error('Respuesta de estrategia sin "slides"');
-  return parsed.slides;
+  if (!Array.isArray(parsed.items)) throw new Error('Respuesta de estrategia sin "items"');
+  return parsed.items;
 }
 
-// Decide qué categorías necesitan copy nuevo esta ejecución y devuelve el set completo
-// de slides (mezclando lo recién generado con lo que sigue vigente).
+// Genera el set cerrado de una categoría normal (oferta / caso_exito / marca): N variantes
+// que comparten el mismo icono y la misma etiqueta (badge), fijados por código, no por la IA.
+async function generatePoolForCategory(category) {
+  const userPrompt = `
+Contexto de marca:
+${BRAND_BRIEF}
+
+Categoría: "${category.label}". Enfoque: ${category.brief}
+${category.formula ? `Fórmula/patrón fijo a repetir en las ${category.poolSize} variantes: ${category.formula}` : ''}
+
+Genera ${category.poolSize} variantes distintas de headline+subheadline para esta categoría. Deben
+poder repetirse en bucle durante meses, así que cada una debe funcionar de forma independiente.
+`.trim();
+
+  const items = await callOpenAI(userPrompt);
+  return items.slice(0, category.poolSize).map((item) => ({
+    headline: item.headline || '',
+    subheadline: item.subheadline || '',
+    badge: category.badgeLabel,
+    icon: category.icon,
+  }));
+}
+
+// Genera el "catálogo" de servicio destacado: un mensaje por cada uno de los 4 servicios,
+// en orden fijo. El icono y la etiqueta vienen de SERVICES (código), nunca de la IA.
+async function generateCatalogoPool(category) {
+  const userPrompt = `
+Contexto de marca:
+${BRAND_BRIEF}
+
+Categoría: "${category.label}". Enfoque: ${category.brief}
+
+Genera un headline+subheadline para CADA uno de estos servicios, en este orden, uno por línea:
+${SERVICES.map((s, i) => `${i + 1}. ${s.label}`).join('\n')}
+
+Responde con un array "items" de exactamente ${SERVICES.length} elementos, en el mismo orden.
+`.trim();
+
+  const items = await callOpenAI(userPrompt);
+  return SERVICES.map((service, i) => ({
+    headline: (items[i] && items[i].headline) || '',
+    subheadline: (items[i] && items[i].subheadline) || '',
+    badge: service.badgeLabel,
+    icon: service.icon,
+  }));
+}
+
+// Decide qué categorías necesitan un set nuevo (raro: solo si no existe o si ha envejecido
+// mucho, ver state.needsNewPool), avanza el índice de las que tocan rotar, y devuelve el
+// plan completo (un slide por categoría) para renderizar esta ejecución.
 async function buildWeeklyPlan() {
   const s = state.load();
-  s.slides = s.slides || {};
+  s.categories = s.categories || {};
 
-  const toRefresh = CATEGORIES.filter((c) => state.needsRefresh(s, c));
-  const fresh = toRefresh.length ? await generateCopy(toRefresh) : [];
+  for (const category of CATEGORIES) {
+    const entry = s.categories[category.key] || {};
 
-  const now = new Date().toISOString();
-  for (const item of fresh) {
-    const category = CATEGORIES.find((c) => c.key === item.key);
-    if (!category) continue;
-    s.slides[item.key] = {
-      generatedAt: now,
-      headline: item.headline || '',
-      subheadline: item.subheadline || '',
-      badge: item.badge || '',
-      icon: ICONS.includes(item.icon) ? item.icon : 'star',
-      accent: ACCENTS.includes(item.accent) ? item.accent : category.accent,
-    };
+    if (state.needsNewPool(entry)) {
+      const pool = category.services
+        ? await generateCatalogoPool(category)
+        : await generatePoolForCategory(category);
+
+      s.categories[category.key] = {
+        pool,
+        poolGeneratedAt: new Date().toISOString(),
+        currentIndex: 0,
+        lastAdvanceAt: new Date().toISOString(),
+      };
+    } else if (state.needsAdvance(entry, category.rotationDays)) {
+      const nextIndex = (entry.currentIndex + 1) % entry.pool.length;
+      s.categories[category.key] = {
+        ...entry,
+        currentIndex: nextIndex,
+        lastAdvanceAt: new Date().toISOString(),
+      };
+    }
   }
 
   state.save(s);
 
-  const plan = CATEGORIES.filter((c) => s.slides[c.key]).map((c) => ({
-    key: c.key,
-    label: c.label,
-    refreshedNow: toRefresh.some((r) => r.key === c.key),
-    ...s.slides[c.key],
-  }));
-
-  return plan;
+  return CATEGORIES.map((category) => {
+    const entry = s.categories[category.key];
+    const current = entry.pool[entry.currentIndex];
+    return {
+      key: category.key,
+      label: category.label,
+      accent: category.accent,
+      poolIndex: entry.currentIndex,
+      poolSize: entry.pool.length,
+      ...current,
+    };
+  });
 }
 
-module.exports = { buildWeeklyPlan, ICONS, ACCENTS, BRAND_BRIEF };
+module.exports = { buildWeeklyPlan, BRAND_BRIEF };

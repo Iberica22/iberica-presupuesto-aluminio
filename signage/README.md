@@ -3,33 +3,51 @@
 Pipeline autónomo que cada semana decide qué contenido mostrar en las pantallas LED de la
 tienda, lo genera y lo publica en VNNOX.
 
+## Filosofía: recuerdo de marca, no conversión inmediata
+
+La pantalla la ve sobre todo gente pasando por la calle (2-4 segundos, sin necesidad activa de
+seguridad en ese momento). Por eso el objetivo principal de 4 de las 5 piezas de contenido es
+**quedarse en la memoria** (recuerdo de marca / top-of-mind), no arrancar una conversión — eso
+se reserva para quien se para o entra a la tienda, vía el QR/teléfono fijos (ver más abajo).
+
+El recuerdo de marca se construye con **repetición**, no con contenido nuevo constante — por
+eso el sistema usa **sets cerrados de mensajes en bucle** en vez de generar texto infinito.
+
 ## Cómo funciona
 
-1. **Estrategia** (`strategy.js`): un prompt de marketing/marca (con contexto de la empresa,
-   temporada del año, etc.) le pide a OpenAI el copy de las categorías que tocan renovar esta
-   semana. El resto de categorías se mantiene tal cual — así el contenido rota a distinta
-   velocidad según su tipo:
+1. **Estrategia** (`strategy.js` + `categories.js`): en vez de pedir texto nuevo a OpenAI cada
+   vez que toca rotar, se genera **una sola vez** (o cuando el set envejece mucho, por defecto
+   180 días) un **set cerrado** de `poolSize` variantes de headline+subheadline por categoría.
+   En cada rotación normal, el sistema simplemente avanza al siguiente mensaje del set (sin
+   llamar a la IA) y vuelve a empezar al llegar al final:
 
-   | Categoría               | Rotación   |
-   |-------------------------|------------|
-   | Oferta / gancho semana  | 7 días     |
-   | Servicio destacado      | 14 días    |
-   | Confianza / resultados  | 14 días    |
-   | Marca                   | 30 días    |
-   | CTA / QR                | 30 días    |
+   | Categoría               | Rotación   | Set cerrado |
+   |-------------------------|------------|-------------|
+   | Oferta de la semana     | 7 días     | 6 variantes, siempre en formato "¿Y si...?" |
+   | Servicio destacado      | 21 días    | 1 mensaje por cada uno de los 4 servicios, en orden fijo |
+   | Confianza / resultados  | 30 días    | 4 variantes |
+   | Marca                   | 90 días    | 3 variantes (casi fija) |
 
    Servicios activos: cerrajería, alarmas y videovigilancia (CCTV), puertas acorazadas, domótica.
    Automatismos (motorización) NO está activo, el prompt tiene instrucción explícita de no
-   mencionarlo.
+   mencionarlo. Editable en `categories.js`.
 
-   Editable en `categories.js`.
+   El **icono nunca lo elige la IA**: es fijo por servicio/categoría (mismo icono = mismo
+   servicio siempre, para reconocimiento visual en 2-4 segundos), definido en `categories.js`.
 
-2. **Render** (`render.js` + `svg-template.js`): cada slide se dibuja como SVG con la paleta
-   de marca (la misma de `public/style.css`) y se convierte a PNG a la resolución configurada
-   (1920×1080 por defecto). Incluye un QR que enlaza directamente a este chatbot de
-   presupuestos, para cerrar el círculo escaparate → presupuesto.
+2. **Elementos fijos de marca** (fuera de lo que genera la IA, en `svg-template.js`): cabecera
+   con nombre + Almería + **teléfono** (`SIGNAGE_PHONE`), y un **QR a WhatsApp**
+   (`wa.me/<SIGNAGE_WHATSAPP_NUMBER>`, conectado al bot) presente en las 4 categorías — ya no
+   existe una categoría "CTA" propia que le robe turno de rotación a las demás.
 
-3. **Publicación** (`vnnox-client.js`): sube las imágenes y actualiza el programa/playlist en
+3. **Render** (`render.js` + `svg-template.js`): cada slide se dibuja como SVG con la paleta de
+   marca y se convierte a PNG a la resolución real de la pantalla (432×216 por defecto,
+   confirmada vía la API de VNNOX). Si existe `signage/assets/photos/<categoría>.jpg`, se usa
+   como fondo; si no, un degradado de color liso. Con foto de fondo, una banda casi opaca
+   (no un degradado sutil) protege el titular/subtítulo — verificado con fondos claros,
+   oscuros y de alto contraste, ver commits de "legibilidad" en el historial.
+
+4. **Publicación** (`vnnox-client.js`): sube las imágenes y actualiza el programa/playlist en
    VNNOX, y lo publica en las pantallas configuradas.
 
 4. **Automatización**: `scheduler.js` lo ejecuta cada lunes 07:00 (hora de España) dentro del
@@ -41,8 +59,11 @@ tienda, lo genera y lo publica en VNNOX.
 ```
 OPENAI_API_KEY=...                # ya la tenéis para el chatbot
 
-SIGNAGE_SITE_URL=https://vuestro-dominio   # para el QR de las pantallas
-SIGNAGE_ADMIN_TOKEN=un-token-cualquiera    # para poder llamar a /api/signage/run-now
+SIGNAGE_ADMIN_TOKEN=un-token-cualquiera    # para poder llamar a /api/signage/run-now y /players
+
+SIGNAGE_PHONE=950 08 80 86                 # teléfono fijo mostrado en la cabecera (por defecto)
+SIGNAGE_WHATSAPP_NUMBER=34661665929        # número de WhatsApp del bot, para el QR (por defecto)
+SIGNAGE_WHATSAPP_MESSAGE=Hola, quiero información   # mensaje predefinido del QR (por defecto)
 
 VNNOX_APP_KEY=...
 VNNOX_APP_SECRET=...
@@ -85,8 +106,16 @@ Revisa las PNG generadas y, cuando estén verificadas las rutas, prueba una publ
 npm run signage:run
 ```
 
-## Fotos reales de proyectos
+## Fotos de fondo
 
-La categoría "Confianza / resultados" usa mensajes genéricos porque no tengo fotos reales de
-proyectos. En cuanto el equipo tenga fotos de antes/después, lo ideal es sustituir esa
-categoría por imágenes reales en vez de solo texto — decidme y lo integro.
+Coloca una imagen en `signage/assets/photos/<key>.jpg` (`oferta`, `catalogo`, `caso_exito` o
+`marca`) para que se use como fondo de esa categoría en vez del degradado de color liso. El
+texto se compone siempre por código encima (nunca lo genera la IA de imagen — no puede
+renderizar texto legible de forma fiable), con una banda casi opaca detrás que garantiza
+contraste sea cual sea la foto.
+
+## Reiniciar el set de textos de una categoría
+
+Si en algún momento queréis forzar contenido nuevo antes de que caduque el set (180 días por
+defecto), borrad la entrada correspondiente de `signage/state.json` (o el archivo entero) y la
+siguiente ejecución generará un set nuevo para esa categoría.

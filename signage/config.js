@@ -21,10 +21,22 @@ module.exports = {
 
   openaiModel: process.env.SIGNAGE_OPENAI_MODEL || 'gpt-4o-mini',
 
-  // URL pública de este chatbot de presupuestos, para el QR de las pantallas.
+  // URL pública de este chatbot de presupuestos (ya no se usa para el QR de las pantallas,
+  // que ahora apunta a WhatsApp — se deja por si hace falta en el futuro).
   siteUrl:
     process.env.SIGNAGE_SITE_URL ||
     (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : ''),
+
+  // Contacto fijo mostrado siempre en las 4 categorías (no son secretos, son públicos por
+  // diseño: se muestran en la pantalla del escaparate).
+  contact: {
+    // Teléfono fijo/centralita, mostrado como texto en la cabecera.
+    phone: envTrimmed('SIGNAGE_PHONE', '950 08 80 86'),
+    // Número de WhatsApp conectado al chatbot: el QR abre una conversación directa con un
+    // mensaje predefinido, en vez de cargar la web — más rápido para quien pasa por la calle.
+    whatsappNumber: envTrimmed('SIGNAGE_WHATSAPP_NUMBER', '34661665929'),
+    whatsappMessage: envTrimmed('SIGNAGE_WHATSAPP_MESSAGE', 'Hola, quiero información'),
+  },
 
   vnnox: {
     // Host regional del API Gateway. El panel del cliente es eu.vnnox.com → región EU.

@@ -1,56 +1,82 @@
 // Catálogo de categorías de contenido para las pantallas LED del escaparate.
-// `rotationDays` = cada cuánto se le pide a la IA copy nueva para esa categoría.
-// Entre medias, la pantalla sigue mostrando la última versión (no se regenera sin necesidad).
+//
+// Diseño (revisado tras consultar a los agentes de marca/contenido): la pantalla la ve
+// sobre todo gente pasando por la calle (2-4 seg, sin necesidad activa), así que el
+// objetivo principal de 4 de estas piezas es RECUERDO DE MARCA, no conversión inmediata.
+// Por eso:
+//  - `rotationDays` es más largo que antes: el recuerdo se construye con repetición, no
+//    con contenido nuevo constante.
+//  - `poolSize`: en vez de pedir texto nuevo a la IA cada vez que toca rotar, se genera
+//    UN SET CERRADO de `poolSize` mensajes (una sola vez, o cuando el set envejece mucho)
+//    y el sistema simplemente avanza al siguiente de la lista en cada rotación.
+//  - El icono NUNCA lo elige la IA: es fijo por servicio, para que el reconocimiento sea
+//    visual (mismo icono = mismo servicio, siempre) antes que por lectura del texto.
+//  - El QR (ahora a WhatsApp) y el teléfono son elementos FIJOS de la plantilla — no hay
+//    ya una categoría "CTA" propia que les "robe turno" a las demás.
 
-module.exports = [
+// badgeLabel: texto corto para el badge en pantalla (el badge no tiene sitio para etiquetas
+// largas). label: nombre descriptivo, solo para logs/documentación interna.
+const SERVICES = [
+  { id: 'cerrajeria', label: 'Cerrajería urgente', badgeLabel: 'CERRAJERÍA', icon: 'lock' },
+  { id: 'alarmas', label: 'Alarmas y CCTV', badgeLabel: 'ALARMAS', icon: 'camera' },
+  { id: 'puertas', label: 'Puertas acorazadas', badgeLabel: 'PUERTAS', icon: 'shield' },
+  { id: 'domotica', label: 'Domótica', badgeLabel: 'DOMÓTICA', icon: 'home' },
+];
+
+const CATEGORIES = [
   {
     key: 'oferta',
-    label: 'Oferta / gancho de la semana',
+    label: 'Oferta de la semana',
+    badgeLabel: 'OFERTA',
     rotationDays: 7,
+    poolSize: 6,
     accent: 'green',
+    icon: 'percent',
+    formula:
+      'Formato pregunta, siempre: empieza con "¿Y si...?", "¿Sabías que...?" o equivalente. ' +
+      'Es la fórmula reconocible de esta categoría, repítela en las 6 variantes.',
     brief:
-      'La pieza más llamativa de la semana: una promoción, ventaja competitiva o urgencia sobre ' +
-      'cerrajería, alarmas/CCTV, puertas acorazadas o domótica (ej. cerrajero urgente 24h, revisión ' +
-      'gratuita de alarma, refuerzo de puerta antes del verano). Debe cambiar cada semana. No mencionar ' +
-      'automatismos: no es un servicio activo.',
+      'Gancho memorable sobre un problema cotidiano de seguridad del hogar/negocio (quedarse ' +
+      'fuera de casa, una cerradura antigua, no saber si la puerta es segura, etc.). No pide ' +
+      'una acción inmediata, solo planta la idea para que se recuerde. No mencionar automatismos.',
   },
   {
     key: 'catalogo',
     label: 'Servicio destacado',
-    rotationDays: 14,
+    rotationDays: 21,
     accent: 'gray',
+    // Esta categoría no tiene "poolSize" propio: rota en orden fijo por los 4 servicios,
+    // uno por vez, y cada servicio tiene su icono fijo (nunca elegido por la IA).
+    services: SERVICES,
     brief:
-      'Un servicio concreto del catálogo (cerrajería, alarmas y videovigilancia CCTV, puertas acorazadas, ' +
-      'domótica/control desde el móvil). Rota cada dos semanas por un servicio distinto al de la última vez. ' +
-      'No mencionar automatismos.',
+      'Formato "¿Sabías que también hacemos...?": amplía qué servicios asocia la gente con la ' +
+      'marca, sin presionar a la acción. Un mensaje por cada uno de los 4 servicios.',
   },
   {
     key: 'caso_exito',
     label: 'Confianza / resultados',
-    rotationDays: 14,
+    badgeLabel: 'CONFIANZA',
+    rotationDays: 30,
+    poolSize: 4,
     accent: 'green',
+    icon: 'star',
     brief:
-      'Prueba social basada en los valores reales de la marca: "hacemos lo que decimos", equipo propio que ' +
-      'fabrica, instala y responde, cercanía real, sin depender de terceros. No inventar cifras ni ' +
-      'testimonios de clientes reales concretos (se sustituirá por fotos de proyectos reales cuando el ' +
-      'equipo las facilite).',
+      'Prueba social basada en los valores reales de marca: "hacemos lo que decimos", equipo ' +
+      'propio que fabrica, instala y responde, cercanía real, sin depender de terceros. No ' +
+      'inventar cifras ni testimonios de clientes reales concretos.',
   },
   {
     key: 'marca',
     label: 'Marca',
-    rotationDays: 30,
+    badgeLabel: 'IBÉRICA SEGURIDAD',
+    rotationDays: 90,
+    poolSize: 3,
     accent: 'green',
+    icon: 'shield',
     brief:
-      'Refuerzo de marca: "Ibérica Seguridad, Asesores en Seguridad", especialidad (seguridad para el hogar ' +
-      'y el negocio), zona de servicio (Almería capital y provincia). Tono profesional, cercano, directo y ' +
-      'sin rodeos. Cambia poco, casi siempre el mismo mensaje de fondo.',
-  },
-  {
-    key: 'cta',
-    label: 'Llamada a la acción / QR',
-    rotationDays: 30,
-    accent: 'gray',
-    brief:
-      'CTA directo a pedir presupuesto ahora mismo escaneando el QR en pantalla. Mensaje muy corto y claro.',
+      'Mensaje institucional puro: misión "Seguridad que se siente cerca", especialidad y zona ' +
+      '(Almería capital y provincia). Tono profesional, cercano, directo. Casi no debería cambiar.',
   },
 ];
+
+module.exports = { CATEGORIES, SERVICES };
