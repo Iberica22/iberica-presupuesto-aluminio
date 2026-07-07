@@ -44,9 +44,17 @@ function wrapText(text, maxWidth, fontSize, charWidthFactor = 0.56) {
   return lines;
 }
 
-function textBlock({ x, y, lines, fontSize, lineHeight, fill, weight = 700 }) {
+function textBlock({ x, y, lines, fontSize, lineHeight, fill, weight = 700, outline = false }) {
+  // El contorno es un refuerzo extra (cinturón y tirantes); la defensa real de legibilidad
+  // es la banda-rótulo casi opaca dibujada detrás en buildSlideSvg, no este trazo.
+  const strokeAttrs = outline
+    ? `paint-order="stroke fill" stroke="#04120A" stroke-opacity="0.55" stroke-width="${Math.max(
+        1,
+        Math.round(fontSize * 0.06)
+      )}" stroke-linejoin="round"`
+    : '';
   return `<text x="${x}" y="${y}" font-family="${FONT_FAMILY}" font-size="${fontSize}"
-    font-weight="${weight}" fill="${fill}">
+    font-weight="${weight}" fill="${fill}" ${strokeAttrs}>
     ${lines
       .map(
         (line, i) =>
@@ -59,9 +67,18 @@ function textBlock({ x, y, lines, fontSize, lineHeight, fill, weight = 700 }) {
 // Todas las medidas se calculan como proporción de width/height para que el mismo slide
 // funcione tanto en una pantalla 1920x1080 como en una de 432x216 (resolución real de las
 // pantallas LED de la tienda, muy distinta a la que se asumió al principio).
-function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
+function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl, photoDataUri }) {
   const accent = PALETTE[slide.accent] || PALETTE.green;
   const accentBg = slide.accent === 'gray' ? PALETTE.grayBg : PALETTE.greenPale;
+  const hasPhoto = Boolean(photoDataUri);
+
+  // Banda-rótulo casi opaca detrás del titular/subtítulo cuando hay foto de fondo: un
+  // degradado suave NO garantiza contraste (con alpha 0.4 el contraste real cae a ~2:1
+  // sobre un cielo claro). Alpha 0.83 sobre un verde casi negro sí lo garantiza (≥7:1)
+  // sea cual sea la foto por debajo — no depende de que la IA acierte con el encuadre.
+  const CAPTION_BG = '#07210F';
+  const CAPTION_ALPHA = 0.83;
+  const DIM_ALPHA = 0.2; // atenuador global sobre la foto completa
 
   const pad = Math.round(width * 0.035);
   const showQr = Boolean(qrDataUri && siteUrl);
@@ -103,6 +120,14 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
   const maxSubLines = Math.max(1, Math.min(2, Math.floor(availableForSub / subLineHeight) + 1));
   const subLines = wrapText(slide.subheadline, textAreaWidth, subFontSize, 0.52).slice(0, maxSubLines);
 
+  // Banda-rótulo: ancho completo (de borde a borde), para no depender de acertar el
+  // tamaño exacto del texto ni de dónde la foto tenga su zona "tranquila".
+  const captionTop = headlineStartY - Math.round(headlineFontSize * 0.9) - Math.round(height * 0.02);
+  const captionBottom = subLines.length
+    ? subStartY + (subLines.length - 1) * subLineHeight + Math.round(subFontSize * 0.55) + Math.round(height * 0.03)
+    : headlineStartY + Math.round(headlineFontSize * 0.5) + Math.round(height * 0.04);
+  const captionHeight = captionBottom - captionTop;
+
   return `
 <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -112,7 +137,13 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
     </linearGradient>
   </defs>
 
-  <rect width="${width}" height="${height}" fill="url(#bg)"/>
+  ${
+    hasPhoto
+      ? `<image x="0" y="0" width="${width}" height="${height}" href="${photoDataUri}"
+           preserveAspectRatio="xMidYMid slice"/>
+         <rect width="${width}" height="${height}" fill="#000000" fill-opacity="${DIM_ALPHA}"/>`
+      : `<rect width="${width}" height="${height}" fill="url(#bg)"/>`
+  }
 
   <!-- Cabecera de marca -->
   <rect x="0" y="0" width="${width}" height="${headerHeight}" fill="${PALETTE.green}"/>
@@ -133,10 +164,21 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
   ${
     showQr
       ? ''
-      : `<!-- Icono (se omite cuando hay QR: en 432x216 no caben los dos sin solaparse) -->
+      : `<!-- Icono (se omite cuando hay QR: en 432x216 no caben los dos sin solaparse). -->
+         <!-- Chip sólido/casi opaco detrás: igual que el badge, inmune a la foto de fondo. -->
+         <circle cx="${iconX + iconSize / 2}" cy="${iconY + iconSize / 2}" r="${iconSize * 0.62}"
+           fill="${hasPhoto ? '#0A2A14' : PALETTE.white}" fill-opacity="${hasPhoto ? 0.78 : 1}"/>
          <g transform="translate(${iconX}, ${iconY}) scale(${(iconSize / 100).toFixed(3)})">
            ${renderIcon(slide.icon, accent)}
          </g>`
+  }
+
+  ${
+    hasPhoto
+      ? `<!-- Banda-rótulo: ancho completo, alpha alto, garantiza contraste sea cual sea la foto. -->
+         <rect x="0" y="${captionTop}" width="${width}" height="${captionHeight}"
+           fill="${CAPTION_BG}" fill-opacity="${CAPTION_ALPHA}"/>`
+      : ''
   }
 
   ${textBlock({
@@ -145,7 +187,8 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
     lines: headlineLines,
     fontSize: headlineFontSize,
     lineHeight: headlineLineHeight,
-    fill: PALETTE.text,
+    fill: hasPhoto ? PALETTE.white : PALETTE.text,
+    outline: hasPhoto,
   })}
 
   ${textBlock({
@@ -154,8 +197,9 @@ function buildSlideSvg(slide, { width, height, qrDataUri, siteUrl }) {
     lines: subLines,
     fontSize: subFontSize,
     lineHeight: subLineHeight,
-    fill: PALETTE.muted,
+    fill: hasPhoto ? PALETTE.greenLight : PALETTE.muted,
     weight: 400,
+    outline: hasPhoto,
   })}
 
   ${
