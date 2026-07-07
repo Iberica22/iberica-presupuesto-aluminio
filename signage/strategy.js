@@ -99,6 +99,9 @@ Responde con un array "items" de exactamente ${SERVICES.length} elementos, en el
     subheadline: (items[i] && items[i].subheadline) || '',
     badge: service.badgeLabel,
     icon: service.icon,
+    // Cada servicio necesita su propia foto de fondo (no tiene sentido una sola foto para
+    // los 4): render.js la busca en signage/assets/photos/catalogo_<serviceId>.jpg.
+    photoKey: `catalogo_${service.id}`,
   }));
 }
 

@@ -33,7 +33,7 @@ function buildWhatsappUrl() {
 async function renderSlide(slide) {
   const whatsappUrl = buildWhatsappUrl();
   const qrDataUri = whatsappUrl ? await QRCode.toDataURL(whatsappUrl, { margin: 1, width: 220 }) : null;
-  const photoDataUri = findPhotoDataUri(slide.key);
+  const photoDataUri = findPhotoDataUri(slide.photoKey || slide.key);
 
   const svg = buildSlideSvg(slide, {
     width: config.screen.width,
