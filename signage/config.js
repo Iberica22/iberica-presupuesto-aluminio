@@ -39,8 +39,11 @@ module.exports = {
   },
 
   vnnox: {
-    // Host regional del API Gateway. El panel del cliente es eu.vnnox.com → región EU.
-    apiHost: envTrimmed('VNNOX_API_HOST', 'https://open-eu.vnnox.com'),
+    // Host confirmado directamente en la cuenta real (NovaCloud Open Platform → pestaña
+    // "Authentication" → "Domain Name and Key"): open-au.vnnox.com, NO open-eu.vnnox.com
+    // como se asumió al principio por analogía con el panel eu.vnnox.com — VNNOX asigna el
+    // nodo de API por cuenta, no necesariamente coincide con el país del panel web.
+    apiHost: envTrimmed('VNNOX_API_HOST', 'https://open-au.vnnox.com'),
     appKey: envTrimmed('VNNOX_APP_KEY'),
     appSecret: envTrimmed('VNNOX_APP_SECRET'),
     terminalIds: (process.env.VNNOX_TERMINAL_IDS || '')
