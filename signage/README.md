@@ -121,6 +121,44 @@ encima (nunca lo genera la IA de imagen — no puede renderizar texto legible de
 ni un QR real y escaneable), con una banda casi opaca detrás que garantiza contraste sea cual
 sea la foto.
 
+### Cómo generarlas (para que no se note que son IA)
+
+Generadas con Higgsfield (modelo `nano_banana_pro`, `aspect_ratio: "21:9"`). Dos reglas dan
+más problemas que el resto, con casos reales de por qué:
+
+- **Nunca pidas texto, logos ni marcas dentro de la imagen.** El modelo intentó una vez
+  "poner el nombre de la empresa" en una camiseta y escribió un teléfono inventado; otra vez
+  grabó sin que se pidiera el texto **"SECURITAS"** (una empresa de seguridad competidora
+  real) en una cerradura. El texto/logo/QR se compone siempre después, por código
+  (`svg-template.js`) — la foto tiene que salir completamente limpia.
+- **Exige explícitamente "horizontal landscape orientation, not portrait".** Sin esa
+  instrucción el modelo a veces devuelve formato vertical, que en una pantalla 432×216 (2:1
+  apaisada) obliga a recortar la mayor parte de la composición.
+
+Para que el resultado no tenga "aire publicitario de IA", evita adjetivos tipo *premium*,
+*sleek*, *stunning* (empujan hacia el look de anuncio genérico) y en su lugar pide:
+cámara/óptica concreta (ej. "shot on a 35mm lens like a Fujifilm X100V", no "professional
+camera"), imperfección real (textura de piel con poros, metal con arañazos de uso, sombras
+irregulares de luz natural, encuadre ligeramente descentrado como si fuera reportaje), y
+lenguaje documental/fotoperiodístico en vez de publicitario.
+
+Los 7 prompts finales usados (`nano_banana_pro`, `21:9`), por si hay que regenerar alguno:
+
+| Archivo | Prompt |
+|---|---|
+| `oferta.jpg` | Documentary-style photo of a reinforced entry door on a white Mediterranean house facade, manual multi-point locking mechanism visible and clearly non-motorized, shot on a 35mm lens like a Fujifilm X100V, natural early-evening sunlight raking across the door from the right with slightly uneven shadows, visible texture and minor wear on the metal hardware (not pristine), subtle green accent reflection, slightly off-center composition, horizontal landscape orientation only — not portrait, absolutely no text, no logos, no engravings, no brand names anywhere in the image |
+| `catalogo_cerrajeria.jpg` | Photojournalistic close-up of a locksmith's gloved hands installing a new cylindrical door lock on a light wood door during daytime, small worn toolbox visible nearby, natural window light from the left with soft realistic shadows, visible texture on skin and fabric, shot handheld on a 50mm lens, slightly imperfect framing as if caught mid-action, plain metal lock surface with absolutely no text, no engravings, no logos, no brand names, horizontal landscape orientation only — not portrait |
+| `catalogo_alarmas.jpg` | Documentary photo of an Andalusian-style house exterior at dusk, a discreet security camera mounted under the roof eave, a small alarm keypad panel beside the front door with a single green LED lit, natural ambient dusk light (not studio-perfect), visible weathering on the stucco wall, shot on a wide-angle lens, horizontal landscape orientation only — not portrait, absolutely no text, no logos, no brand names anywhere |
+| `catalogo_puertas.jpg` | Extreme close-up macro photo of a heavy-duty armored door's multi-point locking bolts and reinforced hinges, brushed steel with authentic scratches and use marks (not pristine), dark wood grain texture, natural side lighting with real shadow falloff, manual lock mechanism only with no motor and no automation, horizontal landscape orientation only — not portrait, absolutely no text, no engravings, no logos, no brand names |
+| `catalogo_domotica.jpg` | Photo of a modern wall-mounted security control panel showing an armed/disarmed status indicator with a green light, minimalist design, mounted in the entryway of a lived-in modest Mediterranean home with visible everyday details (not a staged luxury interior), natural daylight with slightly uneven exposure, shot on a 35mm lens, horizontal landscape orientation only — not portrait, no smart-home lifestyle elements like thermostats or mood lighting, absolutely no text, no logos, no brand names |
+| `caso_exito.jpg` | Candid documentary-style environmental portrait of a single security technician in plain dark green-gray workwear with no visible text or logos on the fabric, standing in a doorway he has just finished securing, natural unposed expression looking toward camera, real skin texture and imperfections, natural daylight from a window with soft realistic falloff, shot on a 50mm lens like a photojournalist would, background softly out of focus showing a lived-in modest home interior, horizontal landscape orientation only — not portrait |
+| `marca.jpg` | Wide documentary-style shot of a lived-in white Mediterranean house facade in Almería at golden hour, natural raking sunlight with authentic uneven shadows, a single reinforced entry door as the dominant element with a subtle green accent light near the doorframe, visible everyday wear on the walls (not a staged real-estate photo), shot on a wide-angle lens, horizontal landscape orientation only — not portrait, no additional devices or clutter, absolutely no text, no logos, no brand names |
+
+**Limitación conocida de Claude Code en este entorno**: no puede descargar las imágenes
+generadas (la CDN de Higgsfield está bloqueada por la política de red del sandbox), así que
+necesita que un humano las descargue de las URLs que da Higgsfield y se las reenvíe como
+archivo adjunto para poder colocarlas en `signage/assets/photos/`.
+
 ## Reiniciar el set de textos de una categoría
 
 Si en algún momento queréis forzar contenido nuevo antes de que caduque el set (180 días por
