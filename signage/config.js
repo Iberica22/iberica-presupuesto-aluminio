@@ -21,8 +21,10 @@ module.exports = {
 
   openaiModel: process.env.SIGNAGE_OPENAI_MODEL || 'gpt-4o-mini',
 
-  // URL pública de este chatbot de presupuestos (ya no se usa para el QR de las pantallas,
-  // que ahora apunta a WhatsApp — se deja por si hace falta en el futuro).
+  // URL pública de este servidor: hace falta para dos cosas — construir las URLs de
+  // /signage-preview/<categoría>.png que se le pasan a VNNOX (así no hay que "subir" nada,
+  // VNNOX descarga la imagen solo con esa URL), y como fallback para el QR si algún día se
+  // quisiera volver a apuntar a la web en vez de a WhatsApp.
   siteUrl:
     process.env.SIGNAGE_SITE_URL ||
     (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : ''),
@@ -50,15 +52,15 @@ module.exports = {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean),
-    programName: process.env.VNNOX_PROGRAM_NAME || 'Ibérica Seguridad - Escaparate',
-    // ⚠️ Rutas del API aún sin verificar contra el "API Explorer" de developer-en.vnnox.com
-    // (la documentación bloquea el acceso automatizado). Verificar y ajustar aquí una vez
-    // tengáis AK/AS — ver signage/README.md.
+    // Duración de cada tarjeta en pantalla dentro del bucle, en milisegundos.
+    slideDurationMs: envInt('VNNOX_SLIDE_DURATION_MS', 10000),
+    // Rutas confirmadas en la documentación real de la cuenta (developer-en.vnnox.com):
+    // un único endpoint crea el programa Y lo publica a los reproductores a la vez — no
+    // existe ni hace falta un paso separado de "subir media" (cada widget PICTURE lleva su
+    // propia URL pública, tamaño y MD5; VNNOX descarga la imagen él solo).
     paths: {
       listPlayers: process.env.VNNOX_PATH_LIST_PLAYERS || '/v2/player/list',
-      uploadMedia: process.env.VNNOX_PATH_UPLOAD_MEDIA || '/v2/media/upload',
-      upsertProgram: process.env.VNNOX_PATH_UPSERT_PROGRAM || '/v2/program/save',
-      publishProgram: process.env.VNNOX_PATH_PUBLISH_PROGRAM || '/v2/program/publish',
+      publishProgram: process.env.VNNOX_PATH_PUBLISH_PROGRAM || '/v2/player/program/normal',
     },
   },
 

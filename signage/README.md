@@ -47,10 +47,15 @@ eso el sistema usa **sets cerrados de mensajes en bucle** en vez de generar text
    (no un degradado sutil) protege el titular/subtítulo — verificado con fondos claros,
    oscuros y de alto contraste, ver commits de "legibilidad" en el historial.
 
-4. **Publicación** (`vnnox-client.js`): sube las imágenes y actualiza el programa/playlist en
-   VNNOX, y lo publica en las pantallas configuradas.
+4. **Publicación** (`vnnox-client.js`): un único endpoint (`POST /v2/player/program/normal`)
+   crea el programa Y lo publica a los reproductores a la vez. No hace falta "subir" las
+   imágenes a VNNOX antes: cada tarjeta se referencia por su URL pública
+   (`/signage-preview/<categoría>.png`, servida por este mismo servidor), y `run.js` calcula
+   su tamaño y MD5 — VNNOX descarga la imagen él solo con esos datos. Requiere que
+   `SIGNAGE_SITE_URL` (o `RAILWAY_PUBLIC_DOMAIN` en Railway) apunte a una URL alcanzable
+   desde fuera.
 
-4. **Automatización**: `scheduler.js` lo ejecuta cada lunes 07:00 (hora de España) dentro del
+5. **Automatización**: `scheduler.js` lo ejecuta cada lunes 07:00 (hora de España) dentro del
    propio servidor de Railway (siempre corriendo). También hay un endpoint manual para
    probarlo cuando quieras: `POST /api/signage/run-now` con cabecera `x-admin-token`.
 
@@ -68,33 +73,32 @@ SIGNAGE_WHATSAPP_MESSAGE=Hola, quiero información   # mensaje predefinido del Q
 VNNOX_APP_KEY=...
 VNNOX_APP_SECRET=...
 VNNOX_TERMINAL_IDS=id1,id2                 # IDs de los reproductores/pantallas en VNNOX
-VNNOX_API_HOST=https://open-eu.vnnox.com   # host de la región EU (por defecto)
+VNNOX_API_HOST=https://open-au.vnnox.com   # host confirmado en la cuenta real (por defecto)
+VNNOX_SLIDE_DURATION_MS=10000              # segundos que se muestra cada tarjeta (por defecto 10s)
 ```
 
 ### Cómo conseguir las claves de VNNOX
 
-1. Entra en `developer-en.vnnox.com` con la misma cuenta de `eu.vnnox.com`.
-2. Genera tu AppKey (AK) y AppSecret (AS) — son automáticos al entrar la primera vez.
-3. Busca los IDs de tus pantallas/reproductores (sección "Player"/"Terminal").
+1. Entra en `developer-en.vnnox.com` con la misma cuenta de `eu.vnnox.com` y ve a la pestaña
+   **"Authentication"**.
+2. Ahí aparecen automáticamente el **AppKey**, **AppSecret** y el **"Interface Access Domain
+   Name"** de vuestra cuenta (guardadlo tal cual — VNNOX asigna el nodo de API por cuenta, no
+   necesariamente coincide con la región del panel web: la nuestra usa `open-au.vnnox.com`
+   aunque el panel es `eu.vnnox.com`). Según la documentación, esto ya funciona con permisos
+   básicos antes de completar la verificación de empresa — la verificación solo amplía el
+   alcance de permisos.
+3. Los IDs de los reproductores/pantallas se obtienen con `GET /v2/player/list` (endpoint
+   `/api/signage/players` de este servidor) o en la sección "Player" del panel.
 
-### ⚠️ Importante: verificar las rutas del API antes del primer uso real
+### Confirmado en la documentación real de la cuenta
 
-No pude acceder a la documentación completa de VNNOX de forma automatizada (su web bloquea
-tráfico de bots), así que **solo la autenticación está confirmada al 100%** (cabeceras
-`AppKey/Nonce/CurTime/CheckSum`, ver `vnnox-client.js`). Las rutas de subida de media y de
-gestión de programa (`vnnox.paths.uploadMedia`, `upsertProgram`, `publishProgram` en
-`config.js`) son mi mejor estimación siguiendo el patrón `/v2/...` que sí verifiqué (el
-listado de reproductores, `/v2/player/list`, está confirmado).
+Rutas y payload verificados directamente contra `developer-en.vnnox.com` (no una estimación):
+listado de reproductores en `GET /v2/player/list`, y publicación en un único endpoint
+`POST /v2/player/program/normal` que recibe `{playerIds, pages}` — cada `page` lleva un
+`widget` tipo `PICTURE` con `url` (pública), `size` y `md5` del archivo; sin `schedule`, VNNOX
+reproduce en bucle 24h, que es el comportamiento que queremos. Ver `run.js` (`buildPage`).
 
-Antes de dar por bueno el primer envío real:
-
-1. Entra en el "API Explorer" interactivo de `developer-en.vnnox.com` con vuestra cuenta.
-2. Busca las llamadas de subida de media y de creación/publicación de programa, y compara
-   la ruta exacta con la de `config.js`.
-3. Si difiere, ajústala con las variables de entorno `VNNOX_PATH_UPLOAD_MEDIA`,
-   `VNNOX_PATH_UPSERT_PROGRAM`, `VNNOX_PATH_PUBLISH_PROGRAM` (no hace falta tocar código).
-
-Hasta que esto esté verificado, ejecuta siempre primero en modo prueba:
+Aun así, ejecuta siempre primero en modo prueba antes de una publicación real:
 
 ```bash
 npm run signage:dry-run   # genera las imágenes en signage/output/ sin publicar nada
@@ -108,11 +112,14 @@ npm run signage:run
 
 ## Fotos de fondo
 
-Coloca una imagen en `signage/assets/photos/<key>.jpg` (`oferta`, `catalogo`, `caso_exito` o
-`marca`) para que se use como fondo de esa categoría en vez del degradado de color liso. El
-texto se compone siempre por código encima (nunca lo genera la IA de imagen — no puede
-renderizar texto legible de forma fiable), con una banda casi opaca detrás que garantiza
-contraste sea cual sea la foto.
+Coloca una imagen en `signage/assets/photos/<key>.jpg` para que se use como fondo de esa
+categoría en vez del degradado de color liso: `oferta`, `caso_exito`, `marca`, y para
+"servicio destacado" una por cada servicio (`catalogo_cerrajeria`, `catalogo_alarmas`,
+`catalogo_puertas`, `catalogo_domotica` — una sola foto no vale para las 4, porque cada
+rotación de 21 días muestra un servicio distinto). El texto se compone siempre por código
+encima (nunca lo genera la IA de imagen — no puede renderizar texto legible de forma fiable,
+ni un QR real y escaneable), con una banda casi opaca detrás que garantiza contraste sea cual
+sea la foto.
 
 ## Reiniciar el set de textos de una categoría
 

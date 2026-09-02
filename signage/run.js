@@ -1,11 +1,32 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const config = require('./config');
 const { buildWeeklyPlan } = require('./strategy');
 const { renderPlan } = require('./render');
 const { VnnoxClient, VnnoxNotConfiguredError } = require('./vnnox-client');
 
 const LOG_DIR = path.join(__dirname, 'logs');
+
+// Cada widget PICTURE necesita su URL pública, tamaño y MD5 — no hace falta "subir" nada a
+// VNNOX antes, su servidor descarga la imagen él solo desde /signage-preview/<key>.png.
+function buildPage(item) {
+  return {
+    name: item.key,
+    repeatCount: 1,
+    widgets: [
+      {
+        zIndex: 1,
+        type: 'PICTURE',
+        size: item.buffer.length,
+        md5: crypto.createHash('md5').update(item.buffer).digest('hex'),
+        duration: config.vnnox.slideDurationMs,
+        url: `${config.siteUrl}/signage-preview/${item.key}.png`,
+        layout: { x: '0%', y: '0%', width: '100%', height: '100%' },
+      },
+    ],
+  };
+}
 
 async function publishToScreens(rendered) {
   const client = new VnnoxClient();
@@ -22,14 +43,16 @@ async function publishToScreens(rendered) {
       reason: 'VNNOX_TERMINAL_IDS vacío: no sé a qué pantalla(s) publicar.',
     };
   }
-
-  const mediaRefs = [];
-  for (const item of rendered) {
-    const media = await client.uploadMedia(item.buffer, `${item.key}.png`);
-    mediaRefs.push(media);
+  if (!config.siteUrl) {
+    return {
+      published: false,
+      reason:
+        'SIGNAGE_SITE_URL (o RAILWAY_PUBLIC_DOMAIN) no configurado: VNNOX necesita una URL pública desde la que descargar las imágenes.',
+    };
   }
-  const program = await client.upsertProgram(config.vnnox.programName, mediaRefs);
-  await client.publishToTerminals(program.id || program.programId, config.vnnox.terminalIds);
+
+  const pages = rendered.map(buildPage);
+  await client.publishProgram(config.vnnox.terminalIds, pages);
 
   return { published: true };
 }
