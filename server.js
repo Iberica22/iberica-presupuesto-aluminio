@@ -239,10 +239,17 @@ function buildPDF(data, stream) {
 }
 
 // ── Señalización LED (pantallas del escaparate) ────────────────────────────────
+// Acepta el token también por query string (?token=...) además de la cabecera x-admin-token,
+// para poder llamar a estos endpoints desde el navegador del móvil sin herramientas de terminal.
+function isSignageAuthorized(req) {
+  const token = req.get('x-admin-token') || req.query.token;
+  return Boolean(signageConfig.adminToken) && token === signageConfig.adminToken;
+}
+
 // Lista los reproductores/pantallas dados de alta en VNNOX (para obtener sus IDs reales
 // y rellenar VNNOX_TERMINAL_IDS). Protegido con SIGNAGE_ADMIN_TOKEN.
 app.get('/api/signage/players', async (req, res) => {
-  if (!signageConfig.adminToken || req.get('x-admin-token') !== signageConfig.adminToken) {
+  if (!isSignageAuthorized(req)) {
     return res.status(401).json({ error: 'No autorizado' });
   }
   try {
@@ -257,7 +264,7 @@ app.get('/api/signage/players', async (req, res) => {
 // Ejecuta bajo demanda el pipeline semanal de contenido para las pantallas LED.
 // Protegido con SIGNAGE_ADMIN_TOKEN para poder probarlo/forzarlo sin esperar al cron.
 app.post('/api/signage/run-now', async (req, res) => {
-  if (!signageConfig.adminToken || req.get('x-admin-token') !== signageConfig.adminToken) {
+  if (!isSignageAuthorized(req)) {
     return res.status(401).json({ error: 'No autorizado' });
   }
   try {
