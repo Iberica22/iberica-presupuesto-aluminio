@@ -263,7 +263,9 @@ app.get('/api/signage/players', async (req, res) => {
 
 // Ejecuta bajo demanda el pipeline semanal de contenido para las pantallas LED.
 // Protegido con SIGNAGE_ADMIN_TOKEN para poder probarlo/forzarlo sin esperar al cron.
-app.post('/api/signage/run-now', async (req, res) => {
+// Se acepta también por GET (además del POST correcto en REST) para poder lanzarlo abriendo
+// una URL desde el navegador del móvil, sin herramientas de terminal.
+async function handleRunNow(req, res) {
   if (!isSignageAuthorized(req)) {
     return res.status(401).json({ error: 'No autorizado' });
   }
@@ -275,7 +277,9 @@ app.post('/api/signage/run-now', async (req, res) => {
     console.error('Error ejecutando señalización LED:', err);
     res.status(500).json({ error: err.message });
   }
-});
+}
+app.post('/api/signage/run-now', handleRunNow);
+app.get('/api/signage/run-now', handleRunNow);
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
